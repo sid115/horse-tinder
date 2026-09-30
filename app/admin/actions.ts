@@ -2,27 +2,14 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { hashPassword } from "@/lib/password";
-import type { Role } from "@/lib/constants";
+import { createUserCore, resetUserPasswordCore } from "@/lib/admin";
 
 export async function createUser(form: FormData) {
   await requireAdmin();
-  const username = String(form.get("username") ?? "").trim();
-  const password = String(form.get("password") ?? "");
-  const role = String(form.get("role") ?? "USER") as Role;
-  if (!username || password.length < 8) return { error: "Username required; password ≥ 8 chars" };
-  const exists = await prisma.user.findUnique({ where: { username } });
-  if (exists) return { error: "Username already taken" };
-  await prisma.user.create({
-    data: {
-      username, role,
-      passwordHash: await hashPassword(password),
-      displayName: String(form.get("displayName") ?? username).trim() || username,
-      email: String(form.get("email") ?? "").trim() || null,
-    },
-  });
+  const result = await createUserCore(form);
+  if ("error" in result) return result;
   revalidatePath("/admin/users");
-  return { ok: true };
+  return result;
 }
 
 export async function setUserDisabled(userId: string, disabled: boolean) {
@@ -39,9 +26,10 @@ export async function deleteUser(userId: string) {
 
 export async function resetUserPassword(userId: string, password: string) {
   await requireAdmin();
-  if (password.length < 8) return { error: "Password must be at least 8 characters" };
-  await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(password) } });
-  return { ok: true };
+  const result = await resetUserPasswordCore(userId, password);
+  if ("error" in result) return result;
+  revalidatePath("/admin/users");
+  return result;
 }
 
 export async function adminToggleHorse(horseId: string) {
