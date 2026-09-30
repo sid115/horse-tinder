@@ -1,8 +1,9 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { setUserDisabled, deleteUser } from "../actions";
+import { setUserDisabled } from "../actions";
 import CreateUserForm from "../CreateUserForm";
 import ResetPasswordForm from "../ResetPasswordForm";
+import DeleteUserButton from "../DeleteUserButton";
 
 export default async function AdminUsersPage() {
   await requireAdmin();
@@ -20,7 +21,7 @@ export default async function AdminUsersPage() {
                 <form action={setUserDisabled.bind(null, u.id, !u.disabled)}>
                   <button className="text-neutral-300">{u.disabled ? "Enable" : "Disable"}</button>
                 </form>
-                <form action={deleteUser.bind(null, u.id)}><button className="text-red-400">Delete</button></form>
+                <DeleteUserButton userId={u.id} />
               </span>
             </div>
             <ResetPasswordForm userId={u.id} />

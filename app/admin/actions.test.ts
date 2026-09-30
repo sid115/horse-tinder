@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/db";
-import { createUserCore, resetUserPasswordCore } from "@/lib/admin";
+import { createUserCore, resetUserPasswordCore, deleteUserCore } from "@/lib/admin";
 
 function userForm(overrides: Record<string, string> = {}) {
   const form = new FormData();
@@ -37,6 +37,28 @@ describe("createUserCore", () => {
     expect(user).not.toBeNull();
     expect(user!.passwordHash).not.toBe("password123");
     expect(await verifyPassword("password123", user!.passwordHash)).toBe(true);
+  });
+
+  it("rejects an invalid role", async () => {
+    const res = await createUserCore(userForm({ username: "badrole", role: "SUPERUSER" }));
+    expect(res).toEqual({ error: "Invalid role" });
+    expect(await prisma.user.findUnique({ where: { username: "badrole" } })).toBeNull();
+  });
+});
+
+describe("deleteUserCore", () => {
+  it("refuses to delete the last remaining admin", async () => {
+    const admin = await prisma.user.create({ data: { username: "soleadmin", passwordHash: "x", role: "ADMIN", displayName: "Sole" } });
+    const res = await deleteUserCore(admin.id);
+    expect(res).toEqual({ error: "Cannot delete the last admin" });
+    expect(await prisma.user.findUnique({ where: { id: admin.id } })).not.toBeNull();
+  });
+
+  it("deletes a non-admin user", async () => {
+    const user = await prisma.user.create({ data: { username: "deletable", passwordHash: "x", displayName: "Delete" } });
+    const res = await deleteUserCore(user.id);
+    expect(res).toEqual({ ok: true });
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
   });
 });
 

@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 import { hashPassword } from "./password";
-import type { Role } from "./constants";
+import { ROLES, type Role } from "./constants";
 
 export type ActionResult = { error: string } | { ok: true };
 
@@ -14,10 +14,16 @@ export function validateNewUser(username: string, password: string): string | nu
   return null;
 }
 
+export function validateRole(role: string): role is Role {
+  return (ROLES as readonly string[]).includes(role);
+}
+
 export async function createUserCore(form: FormData): Promise<ActionResult> {
   const username = String(form.get("username") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const role = String(form.get("role") ?? "USER") as Role;
+  const roleInput = String(form.get("role") ?? "USER");
+  if (!validateRole(roleInput)) return { error: "Invalid role" };
+  const role: Role = roleInput;
   const invalid = validateNewUser(username, password);
   if (invalid) return { error: invalid };
   const exists = await prisma.user.findUnique({ where: { username } });
@@ -37,5 +43,16 @@ export async function resetUserPasswordCore(userId: string, password: string): P
   const invalid = validatePassword(password);
   if (invalid) return { error: invalid };
   await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(password) } });
+  return { ok: true };
+}
+
+export async function deleteUserCore(userId: string): Promise<ActionResult> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { error: "User not found" };
+  if (user.role === "ADMIN") {
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+    if (adminCount <= 1) return { error: "Cannot delete the last admin" };
+  }
+  await prisma.user.delete({ where: { id: userId } });
   return { ok: true };
 }

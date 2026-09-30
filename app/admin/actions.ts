@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { createUserCore, resetUserPasswordCore } from "@/lib/admin";
+import { createUserCore, resetUserPasswordCore, deleteUserCore } from "@/lib/admin";
+import { seedDemoData as seedDemoDataCore, resetDatabase as resetDatabaseCore } from "@/prisma/seed-data";
 
 export async function createUser(form: FormData) {
   await requireAdmin();
@@ -20,8 +21,10 @@ export async function setUserDisabled(userId: string, disabled: boolean) {
 
 export async function deleteUser(userId: string) {
   await requireAdmin();
-  await prisma.user.delete({ where: { id: userId } });
+  const result = await deleteUserCore(userId);
+  if ("error" in result) return result;
   revalidatePath("/admin/users");
+  return result;
 }
 
 export async function resetUserPassword(userId: string, password: string) {
@@ -43,4 +46,24 @@ export async function adminDeleteHorse(horseId: string) {
   await requireAdmin();
   await prisma.horse.delete({ where: { id: horseId } });
   revalidatePath("/admin/horses");
+}
+
+export async function seedDemoData() {
+  await requireAdmin();
+  await seedDemoDataCore(prisma);
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/horses");
+  revalidatePath("/admin/matches");
+  return { ok: true as const };
+}
+
+export async function resetDatabase() {
+  await requireAdmin();
+  await resetDatabaseCore(prisma);
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/horses");
+  revalidatePath("/admin/matches");
+  return { ok: true as const };
 }
