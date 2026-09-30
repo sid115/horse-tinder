@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { verifySession } from "./lib/session";
+import { verifySession } from "./lib/session-token";
 
 const PROTECTED = ["/swipe", "/matches", "/horses", "/profile", "/admin"];
 
