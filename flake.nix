@@ -7,10 +7,13 @@
       pkgs = import nixpkgs { inherit system; };
     in {
       devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [ nodejs_22 sqlite ];
+        packages = with pkgs; [ nodejs_22 sqlite prisma-engines_6 ];
         shellHook = ''
           export DATABASE_URL="file:./dev.db"
           export SESSION_SECRET="dev-secret-change-me"
+          export PRISMA_SCHEMA_ENGINE_BINARY="${pkgs.prisma-engines_6}/bin/schema-engine"
+          export PRISMA_QUERY_ENGINE_BINARY="${pkgs.prisma-engines_6}/bin/query-engine"
+          export PRISMA_QUERY_ENGINE_LIBRARY="${pkgs.prisma-engines_6}/lib/libquery_engine.node"
           echo "Horse Tinder dev shell. Node $(node -v)"
         '';
       };
