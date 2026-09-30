@@ -6,3 +6,6 @@ public/uploads
 .env
 .superpowers/
 *.tsbuildinfo
+playwright-report
+test-results
+playwright/.cache
