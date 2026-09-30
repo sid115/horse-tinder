@@ -65,8 +65,9 @@ export async function deleteHorse(horseId: string) {
 
 export async function setPrimaryPhoto(horseId: string, photoId: string) {
   const session = await requireUser();
-  const horse = await prisma.horse.findUnique({ where: { id: horseId } });
-  if (!horse || (horse.ownerId !== session.userId && session.role !== "ADMIN")) throw new Error("Forbidden");
+  const photo = await prisma.photo.findUnique({ where: { id: photoId }, include: { horse: true } });
+  if (!photo || photo.horseId !== horseId || (photo.horse.ownerId !== session.userId && session.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await prisma.$transaction([
     prisma.photo.updateMany({ where: { horseId }, data: { isPrimary: false } }),
     prisma.photo.update({ where: { id: photoId }, data: { isPrimary: true } }),
@@ -76,8 +77,9 @@ export async function setPrimaryPhoto(horseId: string, photoId: string) {
 
 export async function deletePhoto(horseId: string, photoId: string) {
   const session = await requireUser();
-  const horse = await prisma.horse.findUnique({ where: { id: horseId } });
-  if (!horse || (horse.ownerId !== session.userId && session.role !== "ADMIN")) throw new Error("Forbidden");
+  const photo = await prisma.photo.findUnique({ where: { id: photoId }, include: { horse: true } });
+  if (!photo || photo.horseId !== horseId || (photo.horse.ownerId !== session.userId && session.role !== "ADMIN"))
+    throw new Error("Forbidden");
   await prisma.photo.delete({ where: { id: photoId } });
   revalidatePath(`/horses/${horseId}/edit`);
 }
