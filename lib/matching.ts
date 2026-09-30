@@ -33,7 +33,7 @@ export async function getStackForUser(userId: string, filters: StackFilters = {}
 
   let horses = await prisma.horse.findMany({
     where,
-    include: { photos: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    include: { photos: { orderBy: { sortOrder: "asc" }, take: 1 }, owner: true },
   });
 
   if (filters.maxDistanceMiles != null) {
