@@ -6,10 +6,12 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 
 export async function updateProfile(form: FormData) {
   const session = await requireUser();
+  const existing = await prisma.user.findUnique({ where: { id: session.userId } });
+  const displayName = String(form.get("displayName") ?? "").trim() || existing?.displayName || session.username;
   await prisma.user.update({
     where: { id: session.userId },
     data: {
-      displayName: String(form.get("displayName") ?? "").trim(),
+      displayName,
       email: String(form.get("email") ?? "").trim() || null,
       phone: String(form.get("phone") ?? "").trim() || null,
     },
