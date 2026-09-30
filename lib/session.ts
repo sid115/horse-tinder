@@ -3,7 +3,12 @@ import { cookies } from "next/headers";
 import type { Role } from "./constants";
 
 const COOKIE = "session";
-const secret = new TextEncoder().encode(process.env.SESSION_SECRET ?? "dev-secret-change-me");
+
+const sessionSecret = process.env.SESSION_SECRET ?? (process.env.NODE_ENV !== "production" ? "dev-secret-change-me" : undefined);
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
+const secret = new TextEncoder().encode(sessionSecret);
 
 export type SessionPayload = { userId: string; username: string; role: Role };
 
