@@ -37,7 +37,7 @@ export default async function SwipePage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-4">
       <FilterBar />
-      <SwipeStack cards={cards} />
+      <SwipeStack key={`${sp.breed ?? ""}|${sp.discipline ?? ""}|${sp.maxDistanceMiles ?? ""}`} cards={cards} />
     </div>
   );
 }

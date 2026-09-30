@@ -1,7 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { swipe } from "./actions";
 import { DISCIPLINE_LABELS, type Discipline } from "@/lib/constants";
 import { ageFromDob, formatHands } from "@/lib/format";
@@ -15,37 +14,55 @@ export type Card = {
 };
 
 export default function SwipeStack({ cards }: { cards: Card[] }) {
-  const router = useRouter();
-  const [index, setIndex] = useState(0);
+  const [remaining, setRemaining] = useState(cards);
   const [expanded, setExpanded] = useState(false);
   const [matchedId, setMatchedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const card = cards[index];
+  const card = remaining[0];
 
   function act(direction: "LIKE" | "PASS") {
     if (!card) return;
+    const swipedId = card.id;
+    setError(null);
     start(async () => {
-      const res = await swipe(card.id, direction);
-      if (res.matched && res.matchId) setMatchedId(res.matchId);
-      setExpanded(false);
-      setIndex((i) => i + 1);
-      router.refresh();
+      try {
+        const res = await swipe(swipedId, direction);
+        if (res.matched && res.matchId) setMatchedId(res.matchId);
+        setExpanded(false);
+        setRemaining((r) => r.filter((c) => c.id !== swipedId));
+      } catch {
+        setError("Could not record your swipe. Please try again.");
+      }
     });
   }
 
+  const banner = matchedId && (
+    <div className="rounded bg-emerald-900/60 p-3 text-center">
+      <p className="font-bold">It&apos;s a match! 🐴</p>
+      <Link href={`/matches/${matchedId}`} className="text-sm text-emerald-300">Send a message</Link>
+    </div>
+  );
+
+  const errorBanner = error && (
+    <p role="alert" className="rounded bg-red-900/60 p-2 text-center text-sm text-red-200">{error}</p>
+  );
+
   if (!card) {
-    return <p className="text-neutral-400">No more horses. <Link href="/horses" className="text-emerald-400">Add or activate a horse</Link> to see compatible matches.</p>;
+    return (
+      <div className="space-y-4">
+        {banner}
+        {errorBanner}
+        <p className="text-neutral-400">No more horses. <Link href="/horses" className="text-emerald-400">Add or activate a horse</Link> to see compatible matches.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      {matchedId && (
-        <div className="rounded bg-emerald-900/60 p-3 text-center">
-          <p className="font-bold">It&apos;s a match! 🐴</p>
-          <Link href={`/matches/${matchedId}`} className="text-sm text-emerald-300">Send a message</Link>
-        </div>
-      )}
+      {banner}
+      {errorBanner}
       <div className="overflow-hidden rounded-xl border border-neutral-800">
         {card.photo
           ? <img src={card.photo} alt={card.name} className="h-72 w-full object-cover" />
